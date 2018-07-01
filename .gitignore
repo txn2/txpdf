@@ -1,5 +1,6 @@
 # ide
 .idea
+.DS_Store
 
 # output
 *.pdf
