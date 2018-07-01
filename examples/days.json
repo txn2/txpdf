@@ -1,0 +1,40 @@
+{
+  "options": {
+    "toc_xsl_skip": true,
+    "toc_header_text": "Week of Hackaday {{now | date `2006/1/2` }}",
+    "footer_left": "[section]",
+    "footer_right": "Page [page] of [topage]",
+    "custom_headers": {
+      "User-Agent": "TXN2.com"
+    },
+    "custom_header_propagation": true,
+    "print_media_type": true,
+    "no_background": true,
+    "disable_javascript": true,
+    "javascript_delay": 2000
+  },
+  "toc": true,
+  "pages": [
+    {
+      "Location": "https://hackaday.com/{{now | date `2006/1/2` }}/"
+    },
+    {
+      "Location": "https://hackaday.com/{{now | date_modify `-24h` | date `2006/1/2` }}/"
+    },
+    {
+      "Location": "https://hackaday.com/{{now | date_modify `-48h` | date `2006/1/2` }}/"
+    },
+    {
+      "Location": "https://hackaday.com/{{now | date_modify `-72h` | date `2006/1/2` }}/"
+    },
+    {
+      "Location": "https://hackaday.com/{{now | date_modify `-96h` | date `2006/1/2` }}/"
+    },
+    {
+      "Location": "https://hackaday.com/{{now | date_modify `-96h` | date `2006/1/2` }}/"
+    },
+    {
+      "Location": "https://hackaday.com/{{now | date_modify `-120h` | date `2006/1/2` }}/"
+    }
+  ]
+}

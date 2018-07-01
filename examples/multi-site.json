@@ -1,0 +1,29 @@
+{
+  "options": {
+    "footer_left": "[section] [subsection]",
+    "footer_right": "Page [page] of [topage]",
+    "custom_headers": {
+      "User-Agent": "TXN2.com"
+    },
+    "custom_header_propagation": true,
+    "print_media_type": true
+  },
+  "toc": true,
+  "pages": [
+    {
+      "Location": "https://www.example.com"
+    },
+    {
+      "Location": "https://www.example.com"
+    },
+    {
+      "Location": "https://www.example.com"
+    },
+    {
+      "Location": "https://www.example.com"
+    },
+    {
+      "Location": "https://www.example.com"
+    }
+  ]
+}
