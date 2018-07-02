@@ -1,0 +1,10 @@
+{
+  "options": {
+    "print_media_type": true
+  },
+  "pages": [
+    {
+      "Location": "https://www.example.com"
+    }
+  ]
+}
