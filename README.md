@@ -6,6 +6,8 @@
 
 # txPDF
 
+Check out the article [Webpage to PDF Microservice](https://mk.imti.co/webpage-to-pdf-microservice/) for a quick getting started guide.
+
 [txPDF] is an HTML to PDF microservice by [txn2]. [txPDF] is built on top of the [n2pdf] container exposing an API endpoint that returns a PDF document from web based **POST** request.
 
 Example Post Body:
