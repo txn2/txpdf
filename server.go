@@ -171,6 +171,7 @@ func main() {
 				logger.Info("Adding cover: " + cfg.Cover.Location)
 				pdfg.Cover.Input = cfg.Cover.Location
 				pdfg.Cover.PrintMediaType.Set(true)
+				pdfg.Cover.LoadErrorHandling.Set("skip")
 				pdfg.Cover.LoadMediaErrorHandling.Set("skip")
 
 				for k, v := range cfg.Options.CustomHeaders {
@@ -190,6 +191,7 @@ func main() {
 
 				p.EnableTocBackLinks.Set(true)
 				p.LoadErrorHandling.Set("skip")
+				p.LoadMediaErrorHandling.Set("skip")
 				p.FooterLeft.Set(cfg.Options.FooterLeft)
 				p.FooterRight.Set(cfg.Options.FooterLeftRight)
 				p.PrintMediaType.Set(cfg.Options.PrintMediaType)
