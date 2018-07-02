@@ -156,6 +156,8 @@ func main() {
 				logger.Info("Adding TOC")
 				pdfg.TOC.Include = true
 				pdfg.TOC.ExcludeFromOutline.Set(true)
+				pdfg.TOC.LoadMediaErrorHandling.Set("ignore")
+				pdfg.TOC.LoadErrorHandling.Set("ignore")
 
 				if len(cfg.Options.TocHeaderText) > 0 {
 					pdfg.TOC.TocHeaderText.Set(cfg.Options.TocHeaderText)
@@ -171,8 +173,8 @@ func main() {
 				logger.Info("Adding cover: " + cfg.Cover.Location)
 				pdfg.Cover.Input = cfg.Cover.Location
 				pdfg.Cover.PrintMediaType.Set(true)
-				pdfg.Cover.LoadErrorHandling.Set("skip")
-				pdfg.Cover.LoadMediaErrorHandling.Set("skip")
+				pdfg.Cover.LoadErrorHandling.Set("ignore")
+				pdfg.Cover.LoadMediaErrorHandling.Set("ignore")
 
 				for k, v := range cfg.Options.CustomHeaders {
 					logger.Info("Adding custom header to cover: k: " + k + " v: " + v)
@@ -190,8 +192,8 @@ func main() {
 				}
 
 				p.EnableTocBackLinks.Set(true)
-				p.LoadErrorHandling.Set("skip")
-				p.LoadMediaErrorHandling.Set("skip")
+				p.LoadErrorHandling.Set("ignore")
+				p.LoadMediaErrorHandling.Set("ignore")
 				p.FooterLeft.Set(cfg.Options.FooterLeft)
 				p.FooterRight.Set(cfg.Options.FooterLeftRight)
 				p.PrintMediaType.Set(cfg.Options.PrintMediaType)
@@ -213,12 +215,12 @@ func main() {
 
 			err = pdfg.Create()
 			if err != nil {
-				logger.Error("RunError: " + err.Error())
-				ack.ServerCode = 500
-				ack.PayloadType = "RunError"
-				ack.SetPayload(err.Error())
-				c.JSON(ack.ServerCode, ack)
-				return
+				logger.Warn("RunError: " + err.Error())
+				// since wkhtmltopdf is not respecting the ignore on
+				// missing content we will suppress the error, log it and
+				// assume the pdf is acceptable.
+
+				// TODO: investigate
 			}
 
 			c.Header("Content-Type", "application/pdf")
