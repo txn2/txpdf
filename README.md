@@ -1,6 +1,8 @@
-![](./assets/mast.jpg)
+![](https://raw.githubusercontent.com/txn2/txpdf/master/assets/mast.jpg)
 
 [![](https://images.microbadger.com/badges/image/txn2/txpdf.svg)](https://microbadger.com/images/txn2/txpdf "n2pdf")
+[![Docker Container Pulls](https://img.shields.io/docker/pulls/txn2/txpdf.svg)](https://hub.docker.com/r/txn2/txpdf/)
+
 
 # txPDF
 
@@ -19,6 +21,8 @@ Example Post Body:
   ]
 }
 ```
+
+If you want to convert web pages to PDF but do not need a web service you can use the [n2pdf] container directly as a command line tool.
 
 ## Docker Use
 
