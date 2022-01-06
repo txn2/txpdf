@@ -31,7 +31,7 @@ If you want to convert web pages to PDF but do not need a web service you can us
 Run the [txPDF Docker container] on your local workstation for testing. Forward port **8080** or any free port to txPDFs default service port **8080** on the container.
 
 ```bash
-docker run --rm -p 8080:8080 -e DEBUG=true txn2/txpdf
+docker run --rm -p 8080:8080 -e IP=0.0.0.0 txn2/txpdf:2.0.1
 ```
 
 ## Curl Test
@@ -53,6 +53,7 @@ curl -d "@examples/days.json" -X POST http://localhost:8080/getPdf --output test
 ```bash
 curl -d "@examples/multi-site.json" -X POST http://localhost:8080/getPdf --output test.pdf
 ```
+
 
 [n2pdf]:https://github.com/txn2/n2pdf
 [txPDF]:https://github.com/txn2/txpdf
