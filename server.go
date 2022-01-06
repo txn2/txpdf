@@ -71,12 +71,9 @@ func main() {
 	//
 	r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
 
-	// route group for specified base path
-	rg := r.Group("")
-
 	// routes
 	//
-	rg.GET("/",
+	r.GET("/",
 		func(c *gin.Context) {
 			// call external libs for business logic here
 			ack := ginack.Ack(c)
@@ -89,7 +86,7 @@ func main() {
 		},
 	)
 
-	rg.POST("/getPdf",
+	r.POST("/getPdf",
 		func(c *gin.Context) {
 			ack := ginack.Ack(c)
 
@@ -248,6 +245,13 @@ func main() {
 		// return
 		c.JSON(ack.ServerCode, ack)
 	})
+
+	logger.Info("Starting txPDF server",
+		zap.String("IP", ip),
+		zap.String("port", port),
+		zap.String("debug", debug),
+		zap.String("tocXsl", tocXsl),
+	)
 
 	err = r.Run(ip + ":" + port)
 	if err != nil {
