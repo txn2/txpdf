@@ -43,9 +43,9 @@ curl -d "@examples/days.json" -X POST http://localhost:8080/getPdf --output test
 
 | Variable | Default | Purpose |
 | -------- | ------- | ------- |
+| IP | 127.0.0.1 | Bind IP address |
 | PORT | 8080 | Server listen port |
 | DEBUG | false | Verbose logging |
-| BASE_PATH |  | Base path for routes. Prepends onto web service routes  **BASE_PATH**/getPdf and **BASE_PATH**/status |
 | TOC_XSL | | Path to XSL transformation script for Table of Contents (example **./toc.xsl**. Container holds a default **./toc.xsl** |
 
 ## Test
