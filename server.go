@@ -1,16 +1,12 @@
-// Package main
-//
-// txn2.com
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"os"
 	"text/template"
 	"time"
-
-	"bytes"
 
 	"github.com/Masterminds/sprig"
 	wk "github.com/SebastiaanKlippert/go-wkhtmltopdf"
@@ -20,9 +16,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// Page
 type Page struct {
-	Location string `json:location`
+	Location string `json:"location,omitempty"`
 }
 
 type Options struct {
@@ -38,7 +33,6 @@ type Options struct {
 	DisableJavascript       bool              `json:"disable_javascript"`
 }
 
-// Cfg
 type Cfg struct {
 	Cover   Page    `json:"cover"`
 	TOC     bool    `json:"toc"`
@@ -47,13 +41,13 @@ type Cfg struct {
 }
 
 func main() {
-	// Default and consistent environment variables
-	// help standardize k8s configs and documentation
-	//
-	port := getEnv("PORT", "8080")
-	debug := getEnv("DEBUG", "false")
-	basePath := getEnv("BASE_PATH", "")
-	tocXsl := getEnv("TOC_XSL", "")
+
+	var (
+		ip     = getEnv("IP", "127.0.0.1")
+		port   = getEnv("PORT", "8080")
+		debug  = getEnv("DEBUG", "false")
+		tocXsl = getEnv("TOC_XSL", "")
+	)
 
 	gin.SetMode(gin.ReleaseMode)
 
@@ -78,7 +72,7 @@ func main() {
 	r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
 
 	// route group for specified base path
-	rg := r.Group(basePath)
+	rg := r.Group("")
 
 	// routes
 	//
@@ -229,7 +223,7 @@ func main() {
 	)
 
 	// for external status check
-	r.GET(basePath+"/status",
+	r.GET("/status",
 		func(c *gin.Context) {
 			ack := ginack.Ack(c)
 			p := gin.H{"message": "alive"}
@@ -255,7 +249,10 @@ func main() {
 		c.JSON(ack.ServerCode, ack)
 	})
 
-	r.Run(":" + port)
+	err = r.Run(ip + ":" + port)
+	if err != nil {
+		logger.Fatal("could not start server", zap.Error(err))
+	}
 }
 
 // getEnv gets an environment variable or sets a default if
