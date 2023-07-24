@@ -37,7 +37,7 @@ for more on this issue.
 Run the [txPDF Docker container] on your local workstation for testing. Forward port **8080** or any free port to txPDFs default service port **8080** on the container.
 
 ```bash
-docker run --rm -p 8080:8080 -e IP=0.0.0.0 txn2/txpdf:2.0.1
+docker run --rm -p 8080:8080 -e IP=0.0.0.0 txn2/txpdf:2.0.2
 ```
 
 ## Curl Test
