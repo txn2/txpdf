@@ -29,7 +29,7 @@ If you want to convert web pages to PDF but do not need a web service you can us
 ## Security
 
 [txPDF] is intended as a backend service and should only be accessible by other trusted services. [txPDF] allows the passing of template directives that can access environment or request data. This is useful and make
-[txPDF] highly flexible. However please treat [txPDF] as a remote code executor and implement it accordingly. See [#2] 
+[txPDF] highly flexible. However please treat [txPDF] as a remote code executor and implement it accordingly. See [#2](https://github.com/txn2/txpdf/issues/2) 
 for more on this issue.
 
 ## Docker Use
