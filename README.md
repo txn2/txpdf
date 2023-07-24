@@ -26,6 +26,12 @@ Example Post Body:
 
 If you want to convert web pages to PDF but do not need a web service you can use the [n2pdf] container directly as a command line tool.
 
+## Security
+
+[txPDF] is intended as a backend service and should only be accessible by other trusted services. [txPDF] allows the passing of template directives that can access environment or request data. This is useful and make
+[txPDF] highly flexible. However please treat [txPDF] as a remote code executor and implement it accordingly. See [#2] 
+for more on this issue.
+
 ## Docker Use
 
 Run the [txPDF Docker container] on your local workstation for testing. Forward port **8080** or any free port to txPDFs default service port **8080** on the container.
