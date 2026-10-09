@@ -24,6 +24,32 @@ Example Post Body:
 }
 ```
 
+## Custom Page Dimensions
+
+These parameters require a server version that includes custom page dimensions. The official `txn2/txpdf:2.0.2` image does not include this functionality. To use the example below, run a server built from source with this feature or a release that includes it.
+
+To set a custom paper size, provide `page_width_mm` and `page_height_mm` in `options`. Both values are expressed in millimeters and apply to the entire document, including the cover and table of contents.
+
+Example Post Body:
+```json
+{
+  "options": {
+    "print_media_type": true,
+    "page_width_mm": 147.5,
+    "page_height_mm": 210.25
+  },
+  "pages": [
+    {
+      "location": "https://www.example.com"
+    }
+  ]
+}
+```
+
+Both dimensions must be provided together as positive, finite JSON numbers. Integers and decimals are accepted; strings such as `"147mm"`, booleans, arrays, objects, zero, negative values and numbers outside the supported numeric range are rejected with HTTP **400** and a `PageDimensionsError` JSON response.
+
+Omitted or `null` dimensions are treated as unset. When both are unset, the existing default paper size (A4) is preserved. If only one dimension contains a number, the request is rejected with HTTP **400**. Other PDF options retain their existing behavior.
+
 If you want to convert web pages to PDF but do not need a web service you can use the [n2pdf] container directly as a command line tool.
 
 ## Security
