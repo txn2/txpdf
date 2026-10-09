@@ -3,8 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"math"
 	"net/http"
 	"os"
+	"strconv"
 	"text/template"
 	"time"
 
@@ -31,6 +35,31 @@ type Options struct {
 	NoBackground            bool              `json:"no_background"`
 	JavascriptDelay         uint              `json:"javascript_delay"`
 	DisableJavascript       bool              `json:"disable_javascript"`
+	PageWidthMM             *float64          `json:"page_width_mm,omitempty"`
+	PageHeightMM            *float64          `json:"page_height_mm,omitempty"`
+}
+
+// validatePageDimensions allows omitted dimensions and requires a positive pair
+// when a custom paper size is requested. Values are always millimeters.
+func (options Options) validatePageDimensions() error {
+	width, height := options.PageWidthMM, options.PageHeightMM
+	if (width == nil) != (height == nil) {
+		return fmt.Errorf("page_width_mm and page_height_mm must be provided together")
+	}
+	if width != nil && (*width <= 0 || *height <= 0 ||
+		math.IsNaN(*width) || math.IsNaN(*height) ||
+		math.IsInf(*width, 0) || math.IsInf(*height, 0)) {
+		return fmt.Errorf("page_width_mm and page_height_mm must be positive finite numbers")
+	}
+	return nil
+}
+
+func (options Options) applyPageDimensions(pdfg *wk.PDFGenerator) {
+	if options.PageWidthMM == nil {
+		return
+	}
+	pdfg.PageWidthUnit.Set(strconv.FormatFloat(*options.PageWidthMM, 'f', -1, 64) + "mm")
+	pdfg.PageHeightUnit.Set(strconv.FormatFloat(*options.PageHeightMM, 'f', -1, 64) + "mm")
 }
 
 type Cfg struct {
@@ -86,138 +115,7 @@ func main() {
 		},
 	)
 
-	r.POST("/getPdf",
-		func(c *gin.Context) {
-			ack := ginack.Ack(c)
-
-			rs, err := c.GetRawData()
-			if err != nil {
-				logger.Error("PostError: " + err.Error())
-				ack.ServerCode = 500
-				ack.SetPayload(gin.H{"status": "fail", "error": err.Error()})
-				c.JSON(ack.ServerCode, ack)
-				return
-			}
-
-			// parse raw json
-			tmpl, err := template.New("PostFilter").Funcs(sprig.TxtFuncMap()).Parse(string(rs))
-			if err != nil {
-				logger.Error("PostFilterError: " + err.Error())
-				ack.ServerCode = 500
-				ack.PayloadType = "PostFilterError"
-				ack.SetPayload(err.Error())
-				c.JSON(ack.ServerCode, ack)
-				return
-			}
-
-			var tplReturn bytes.Buffer
-			if err := tmpl.Execute(&tplReturn, c.Request); err != nil {
-				logger.Error("TemplateError: " + err.Error())
-				ack.ServerCode = 500
-				ack.PayloadType = "TemplateError"
-				ack.SetPayload(err.Error())
-				c.JSON(ack.ServerCode, ack)
-				return
-			}
-
-			cfg := &Cfg{}
-			err = json.Unmarshal(tplReturn.Bytes(), cfg)
-			if err != nil {
-				logger.Error("UnmarshalError: " + err.Error())
-				ack.ServerCode = 500
-				ack.PayloadType = "UnmarshalError"
-				ack.SetPayload(err.Error())
-				c.JSON(ack.ServerCode, ack)
-				return
-			}
-
-			// Create new PDF generator
-			pdfg, err := wk.NewPDFGenerator()
-			if err != nil {
-				logger.Error("PDFGeneratorError: " + err.Error())
-				ack.ServerCode = 500
-				ack.PayloadType = "UnmarshalError"
-				ack.SetPayload(err.Error())
-				c.JSON(ack.ServerCode, ack)
-				return
-			}
-
-			// configure a table of contents
-			if cfg.TOC {
-				logger.Info("Adding TOC")
-				pdfg.TOC.Include = true
-				pdfg.TOC.ExcludeFromOutline.Set(true)
-				pdfg.TOC.LoadMediaErrorHandling.Set("ignore")
-				pdfg.TOC.LoadErrorHandling.Set("ignore")
-
-				if len(cfg.Options.TocHeaderText) > 0 {
-					pdfg.TOC.TocHeaderText.Set(cfg.Options.TocHeaderText)
-				}
-
-				if tocXsl != "" && cfg.Options.TocXslSkip != true {
-					pdfg.TOC.XslStyleSheet.Set(tocXsl)
-				}
-			}
-
-			// add cover page if one exists
-			if len(cfg.Cover.Location) > 1 {
-				logger.Info("Adding cover: " + cfg.Cover.Location)
-				pdfg.Cover.Input = cfg.Cover.Location
-				pdfg.Cover.PrintMediaType.Set(true)
-				pdfg.Cover.LoadErrorHandling.Set("ignore")
-				pdfg.Cover.LoadMediaErrorHandling.Set("ignore")
-
-				for k, v := range cfg.Options.CustomHeaders {
-					logger.Info("Adding custom header to cover: k: " + k + " v: " + v)
-					pdfg.Cover.CustomHeader.Set(k, v)
-					pdfg.Cover.CustomHeaderPropagation.Set(cfg.Options.CustomHeaderPropagation)
-				}
-			}
-
-			// loop through page locations
-			for _, page := range cfg.Pages {
-				logger.Info("Adding page: " + page.Location)
-				p := &wk.Page{
-					Input:       page.Location,
-					PageOptions: wk.NewPageOptions(),
-				}
-
-				p.EnableTocBackLinks.Set(true)
-				p.LoadErrorHandling.Set("ignore")
-				p.LoadMediaErrorHandling.Set("ignore")
-				p.FooterLeft.Set(cfg.Options.FooterLeft)
-				p.FooterRight.Set(cfg.Options.FooterLeftRight)
-				p.PrintMediaType.Set(cfg.Options.PrintMediaType)
-				p.JavascriptDelay.Set(cfg.Options.JavascriptDelay)
-				p.NoBackground.Set(cfg.Options.NoBackground)
-				p.DisableJavascript.Set(cfg.Options.NoBackground)
-
-				for k, v := range cfg.Options.CustomHeaders {
-					logger.Info("Adding custom header to page: k: " + k + " v: " + v)
-					p.CustomHeader.Set(k, v)
-					p.CustomHeaderPropagation.Set(cfg.Options.CustomHeaderPropagation)
-				}
-
-				pdfg.AddPage(p)
-
-			}
-
-			// Create PDF document in internal buffer
-
-			err = pdfg.Create()
-			if err != nil {
-				logger.Warn("RunError: " + err.Error())
-				// since wkhtmltopdf is not respecting the ignore on
-				// missing content we will suppress the error, log it and
-				// assume the pdf is acceptable.
-
-				// TODO: investigate
-			}
-
-			c.Header("Content-Type", "application/pdf")
-			c.String(http.StatusOK, string(pdfg.Bytes()))
-		},
-	)
+	r.POST("/getPdf", getPDFHandler(logger, tocXsl))
 
 	// for external status check
 	r.GET("/status",
@@ -256,6 +154,157 @@ func main() {
 	err = r.Run(ip + ":" + port)
 	if err != nil {
 		logger.Fatal("could not start server", zap.Error(err))
+	}
+}
+
+func getPDFHandler(logger *zap.Logger, tocXsl string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ack := ginack.Ack(c)
+
+		rs, err := c.GetRawData()
+		if err != nil {
+			logger.Error("PostError: " + err.Error())
+			ack.ServerCode = 500
+			ack.SetPayload(gin.H{"status": "fail", "error": err.Error()})
+			c.JSON(ack.ServerCode, ack)
+			return
+		}
+
+		// parse raw json
+		tmpl, err := template.New("PostFilter").Funcs(sprig.TxtFuncMap()).Parse(string(rs))
+		if err != nil {
+			logger.Error("PostFilterError: " + err.Error())
+			ack.ServerCode = 500
+			ack.PayloadType = "PostFilterError"
+			ack.SetPayload(err.Error())
+			c.JSON(ack.ServerCode, ack)
+			return
+		}
+
+		var tplReturn bytes.Buffer
+		if err := tmpl.Execute(&tplReturn, c.Request); err != nil {
+			logger.Error("TemplateError: " + err.Error())
+			ack.ServerCode = 500
+			ack.PayloadType = "TemplateError"
+			ack.SetPayload(err.Error())
+			c.JSON(ack.ServerCode, ack)
+			return
+		}
+
+		cfg := &Cfg{}
+		err = json.Unmarshal(tplReturn.Bytes(), cfg)
+		if err != nil {
+			logger.Error("UnmarshalError: " + err.Error())
+			ack.ServerCode = 500
+			ack.PayloadType = "UnmarshalError"
+			var typeError *json.UnmarshalTypeError
+			if errors.As(err, &typeError) &&
+				(typeError.Field == "options.page_width_mm" || typeError.Field == "options.page_height_mm") {
+				ack.ServerCode = http.StatusBadRequest
+				ack.Success = false
+				ack.PayloadType = "PageDimensionsError"
+			}
+			ack.SetPayload(err.Error())
+			c.JSON(ack.ServerCode, ack)
+			return
+		}
+
+		if err := cfg.Options.validatePageDimensions(); err != nil {
+			ack.ServerCode = http.StatusBadRequest
+			ack.Success = false
+			ack.PayloadType = "PageDimensionsError"
+			ack.SetPayload(err.Error())
+			c.JSON(ack.ServerCode, ack)
+			return
+		}
+
+		// Create new PDF generator
+		pdfg, err := wk.NewPDFGenerator()
+		if err != nil {
+			logger.Error("PDFGeneratorError: " + err.Error())
+			ack.ServerCode = 500
+			ack.PayloadType = "UnmarshalError"
+			ack.SetPayload(err.Error())
+			c.JSON(ack.ServerCode, ack)
+			return
+		}
+
+		cfg.Options.applyPageDimensions(pdfg)
+
+		// configure a table of contents
+		if cfg.TOC {
+			logger.Info("Adding TOC")
+			pdfg.TOC.Include = true
+			pdfg.TOC.ExcludeFromOutline.Set(true)
+			pdfg.TOC.LoadMediaErrorHandling.Set("ignore")
+			pdfg.TOC.LoadErrorHandling.Set("ignore")
+
+			if len(cfg.Options.TocHeaderText) > 0 {
+				pdfg.TOC.TocHeaderText.Set(cfg.Options.TocHeaderText)
+			}
+
+			if tocXsl != "" && cfg.Options.TocXslSkip != true {
+				pdfg.TOC.XslStyleSheet.Set(tocXsl)
+			}
+		}
+
+		// add cover page if one exists
+		if len(cfg.Cover.Location) > 1 {
+			logger.Info("Adding cover: " + cfg.Cover.Location)
+			pdfg.Cover.Input = cfg.Cover.Location
+			pdfg.Cover.PrintMediaType.Set(true)
+			pdfg.Cover.LoadErrorHandling.Set("ignore")
+			pdfg.Cover.LoadMediaErrorHandling.Set("ignore")
+
+			for k, v := range cfg.Options.CustomHeaders {
+				logger.Info("Adding custom header to cover: k: " + k + " v: " + v)
+				pdfg.Cover.CustomHeader.Set(k, v)
+				pdfg.Cover.CustomHeaderPropagation.Set(cfg.Options.CustomHeaderPropagation)
+			}
+		}
+
+		// loop through page locations
+		for _, page := range cfg.Pages {
+			logger.Info("Adding page: " + page.Location)
+			p := &wk.Page{
+				Input:       page.Location,
+				PageOptions: wk.NewPageOptions(),
+			}
+
+			p.EnableTocBackLinks.Set(true)
+			p.LoadErrorHandling.Set("ignore")
+			p.LoadMediaErrorHandling.Set("ignore")
+			p.FooterLeft.Set(cfg.Options.FooterLeft)
+			p.FooterRight.Set(cfg.Options.FooterLeftRight)
+			p.PrintMediaType.Set(cfg.Options.PrintMediaType)
+			p.JavascriptDelay.Set(cfg.Options.JavascriptDelay)
+			p.NoBackground.Set(cfg.Options.NoBackground)
+			p.DisableJavascript.Set(cfg.Options.NoBackground)
+
+			for k, v := range cfg.Options.CustomHeaders {
+				logger.Info("Adding custom header to page: k: " + k + " v: " + v)
+				p.CustomHeader.Set(k, v)
+				p.CustomHeaderPropagation.Set(cfg.Options.CustomHeaderPropagation)
+			}
+
+			pdfg.AddPage(p)
+
+		}
+
+		// Create PDF document in internal buffer
+
+		err = pdfg.Create()
+		if err != nil {
+			logger.Warn("RunError: " + err.Error())
+			// since wkhtmltopdf is not respecting the ignore on
+			// missing content we will suppress the error, log it and
+			// assume the pdf is acceptable.
+
+			// TODO: investigate
+		}
+
+		c.Header("Content-Type", "application/pdf")
+		c.String(http.StatusOK, string(pdfg.Bytes()))
 	}
 }
 
